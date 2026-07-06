@@ -42,15 +42,18 @@ export default function CommentsList({ postId, initialPage = 1, limit = 2 }) {
   useEffect(() => {
     const handler = (e) => {
       const changedPostId = e?.detail?.postId;
+      const deletedCommentId = e?.detail?.commentId;
       if (changedPostId && String(changedPostId) !== String(postId)) return;
 
-      // Force re-fetch by flipping page state in two steps.
-      // (Two setPage calls in the same tick can collapse; use a small timeout.)
-      setAllComments([]);
-      setPage((p) => (p === 1 ? 2 : 1));
-      setTimeout(() => {
-        setPage(initialPage);
-      }, 0);
+      if (deletedCommentId) {
+        setAllComments((prev) =>
+          prev.filter((c) => String(c?._id ?? c?.id) !== String(deletedCommentId))
+        );
+      } else {
+        setAllComments([]);
+      }
+
+      setPage(initialPage);
     };
 
     window.addEventListener('comment-created', handler);
@@ -63,9 +66,16 @@ export default function CommentsList({ postId, initialPage = 1, limit = 2 }) {
   }, [postId, initialPage]);
 
   useEffect(() => {
-    if (!commentsPage?.length) return;
+    if (!commentsPage?.length) {
+      if (page === initialPage) setAllComments([]);
+      return;
+    }
 
     setAllComments((prev) => {
+      if (page === initialPage) {
+        return commentsPage;
+      }
+
       const map = new Map();
 
       for (const c of prev) {
@@ -75,25 +85,14 @@ export default function CommentsList({ postId, initialPage = 1, limit = 2 }) {
 
       for (const c of commentsPage) {
         const key = c?._id ?? c?.id;
-        if (key) {
-          if (!map.has(key)) map.set(key, c);
-        }
-      }
-
-      if (!map.size && commentsPage.length) {
-        const joined = [...prev, ...commentsPage];
-        return Array.from(new Map(joined.map((c) => [idxKey(c), c])).values());
+        if (key && !map.has(key)) map.set(key, c);
       }
 
       return Array.from(map.values());
     });
-  }, [commentsPage]);
+  }, [commentsPage, page, initialPage]);
 
   const comments = allComments;
-
-  function idxKey(c) {
-    return `${c?.commentCreator?.id ?? ''}|${c?._id ?? c?.id ?? ''}|${c?.content ?? ''}`;
-  }
 
   if (isLoading) return <div className="text-center py-4">Loading comments...</div>;
   if (isError)

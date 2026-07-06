@@ -1,9 +1,10 @@
 import axios from 'axios'
-import React, { useContext, useState } from 'react'
+import React, { lazy, Suspense, useContext, useState } from 'react'
 import { AuthContext } from '../context/AuthContext'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import PostCard from '../PostCard/postCard'
 import { toast } from 'react-toastify'
+
+const PostCard = lazy(() => import('../PostCard/PostCard'))
 
 export default function Profile() {
   // 1. جلب البيانات المتاحة من الـ Context
@@ -112,9 +113,11 @@ export default function Profile() {
         
         <div className="space-y-6">
           {myPosts.length > 0 ? (
-            myPosts.map((post) => (
-              <PostCard key={post._id} post={post} />
-            ))
+            <Suspense fallback={<div className="text-center p-10 text-blue-600 font-bold">Loading posts...</div>}>
+              {myPosts.map((post) => (
+                <PostCard key={post._id} post={post} />
+              ))}
+            </Suspense>
           ) : (
             <div className="text-center p-20 bg-white rounded-3xl border-2 border-dashed border-gray-200 text-gray-400">
               لا توجد منشورات حالياً

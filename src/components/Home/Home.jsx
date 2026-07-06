@@ -1,7 +1,7 @@
 import axios from 'axios'
 import React from 'react'
-import PostCard from '../PostCard/postCard';
-import CreatePost from '../CreatePost/CreatePost'; // 1. استدعاء الكومبوننت هنا (اتأكد من مسار الملف بتاعك)
+import PostCard from '../PostCard/PostCard';
+import CreatePost from '../createPost/CreatePost';
 import { useQuery } from '@tanstack/react-query';
 import usePost from '../hooks/usePost';
 

@@ -17,7 +17,7 @@ export default function DeletePost({ setShowMenu, postId, commentId, inPost = tr
         headers: { token: localStorage.getItem('tkn') }
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // تحديث البيانات بناءً على النوع
       if (inPost) {
         queryClient.invalidateQueries({ queryKey: ['getposts'] });
@@ -25,23 +25,20 @@ export default function DeletePost({ setShowMenu, postId, commentId, inPost = tr
        queryClient.invalidateQueries({ queryKey: ['getSinglePost', postId] });
 
       } else {
-      // Comment deletion: invalidate all paginated queries used by CommentsList
-      queryClient.invalidateQueries({
-        queryKey: ['postComments', postId],
-        exact: false,
-      });
+        await queryClient.invalidateQueries({
+          queryKey: ['postComments', postId],
+          exact: false,
+          refetchType: 'active',
+        });
 
-      queryClient.invalidateQueries({ queryKey: ['getposts'] });
-      queryClient.invalidateQueries({ queryKey: ['getSinglePost', postId] });
-      queryClient.invalidateQueries({ queryKey: ['getSinglePost', postId] });
+        queryClient.invalidateQueries({ queryKey: ['getposts'] });
+        queryClient.invalidateQueries({ queryKey: ['getSinglePost', postId] });
+        queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+        queryClient.invalidateQueries({ queryKey: ['myPosts'] });
 
-      // مهم: عشان CommentsList يحدّث فوري بعد حذف الكومنت
-      window.dispatchEvent(
-        new CustomEvent('comment-deleted', { detail: { postId } })
-      );
-
-      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
-      queryClient.invalidateQueries({ queryKey: ['myPosts'] });
+        window.dispatchEvent(
+          new CustomEvent('comment-deleted', { detail: { postId, commentId } })
+        );
       }
       
       if (setShowMenu) setShowMenu(false);
