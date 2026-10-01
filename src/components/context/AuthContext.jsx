@@ -37,12 +37,15 @@ export default function AuthContextProvider({ children }) {
         retry: false 
     });
 
+    const profilePayload = userQuery.data?.data;
+    const userProfileData = profilePayload?.user || profilePayload || null;
+
     return (
         <AuthContext.Provider value={{ 
             token, 
             setToken, 
             userIdd, 
-            userProfileData: userQuery.data?.data?.user, 
+            userProfileData, 
             isUserLoading: userQuery.isLoading 
         }}>
             {children}

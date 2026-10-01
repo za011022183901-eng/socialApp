@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-export default function DeletePost({ setShowMenu, postId, commentId, inPost = true }) {
+export default function DeletePost({ setShowMenu, postId, commentId, inPost = false}) {
   const queryClient = useQueryClient();
 
   // تحديد الرابط ديناميكياً

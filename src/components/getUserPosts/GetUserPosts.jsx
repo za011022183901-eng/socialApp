@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PostCard from '../PostCard/PostCard';
 import FollowUser from '../FollowUser/FollowUser';
 import { AuthContext } from '../context/AuthContext';
@@ -21,26 +21,37 @@ export default function GetUserPosts() {
   const navigate = useNavigate();
 
   // 🎯 التأكد من التحويل فوراً إذا كنت أنت صاحب الصفحة
+  const isOwnProfile = Boolean(userIdd && id && String(userIdd) === String(id));
+
   useEffect(() => {
-    if (userIdd && id && userIdd === id) {
+    if (isOwnProfile) {
       navigate('/profile', { replace: true });
     }
-  }, [userIdd, id, navigate]);
+  }, [isOwnProfile, navigate]);
 
-  // 2️⃣ الـ Query لجلب البوستات
   const { data, isLoading, isError } = useQuery({
     queryKey: ['userPosts', id],
     queryFn: () => getUserPosts(id),
-    enabled: !!id && userIdd !== id, // لن يعمل الطلب إذا كنت أنت صاحب الصفحة
+    enabled: !!id && !isOwnProfile,
   });
 
-  // ⚡️ استخدام useMemo لتحسين أداء معالجة المصفوفة
   const posts = useMemo(() => {
     return data?.data?.posts || data?.posts || [];
   }, [data]);
 
-  // 🛑 إذا كنت أنت صاحب الصفحة، نمنع عرض أي شيء في الـ UI
-  if (userIdd && id && userIdd === id) {
+  const viewedUser = useMemo(() => {
+    return (
+      data?.data?.user ||
+      data?.user ||
+      posts.find((post) => post?.user)?.user ||
+      null
+    );
+  }, [data, posts]);
+
+  const userName = viewedUser?.name || 'User';
+  const userPhoto = viewedUser?.photo || '';
+
+  if (isOwnProfile) {
     return null;
   }
 
@@ -58,21 +69,37 @@ export default function GetUserPosts() {
       
       {/* 👤 بيانات المستخدم */}
       <div className="flex flex-col items-center mb-10 bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-[700px] mx-auto">
-        <img 
-          src={posts[0]?.user?.photo || "https://pub-3cba56bacf9f4965bbb0989e07dada12.r2.dev/linkedPosts/default-profile.png"} 
-          className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover shadow-md"
-          alt="Profile"
-          onError={(e) => e.target.src = "https://pub-3cba56bacf9f4965bbb0989e07dada12.r2.dev/linkedPosts/default-profile.png"}
-        />
+        <div className="w-32 h-32 rounded-full border-4 border-blue-500 bg-gray-100 flex items-center justify-center overflow-hidden shadow-lg">
+          {userPhoto ? (
+            <img
+              src={userPhoto}
+              alt={userName}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'block';
+              }}
+            />
+          ) : null}
+          <i
+            className="fa-solid fa-user text-gray-400 text-4xl"
+            style={{ display: userPhoto ? 'none' : 'block' }}
+          ></i>
+        </div>
 
         <h1 className="text-2xl font-bold mt-4 text-gray-800">
-          {posts[0]?.user?.name || "مستخدم شبكة التواصل"}
+          {userName}
         </h1>
-        <p className="text-gray-400 text-sm font-medium mb-4">
-          {posts[0]?.user?.username ? `@${posts[0].user.username}` : ""}
-        </p>
 
-        <FollowUser userId={id} />
+        {viewedUser?.username && (
+          <p className="text-gray-400 text-sm font-medium mt-1 mb-4">
+            @{viewedUser.username}
+          </p>
+        )}
+
+        <div className="mt-3">
+          <FollowUser userId={id} />
+        </div>
 
         <div className="mt-4 text-sm font-semibold bg-blue-50 text-blue-600 px-4 py-1 rounded-full">
            {posts.length} POSTS
